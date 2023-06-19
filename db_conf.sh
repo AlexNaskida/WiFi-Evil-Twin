@@ -1,8 +1,8 @@
 #!/bin/bash
-dbname=access_point
-tablename=wifi_keys
-username=AP
-userpasswd=password
+export dbname=access_point
+export tablename=wifi_keys
+export username=AP
+export userpasswd=password
 
 GREEN="\033[0;32m"
 RED="\033[0;31m"
@@ -13,7 +13,7 @@ function Database()
 {
 	if [ $? -eq 0 ]; then
 		echo "[*] Creating new MySQL database..."
-		mysql -e "CREATE DATABASE ${dbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+		mysql -e "CREATE DATABASE ${dbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;" 2>/dev/null
 		if [ $? -eq 0 ]; then
 			echo "[*] Database successfully created!"	
 		else
@@ -25,10 +25,10 @@ function Database()
 		exit 1
 	fi	
 
-	sleep 2
+	sleep 1
 	if [ $? -eq 0 ]; then
 		echo "[*] Creating new user..."
-		mysql -e "CREATE USER ${username}@localhost IDENTIFIED BY '${userpasswd}';"
+		mysql -e "CREATE USER ${username}@localhost IDENTIFIED BY '${userpasswd}';" 2>/dev/null
 		if [ $? -eq 0 ]; then
 			echo "[*] User successfully created!"
 		else
@@ -39,21 +39,21 @@ function Database()
 		exit 1
 	fi
 
-		sleep 2
+	sleep 1
 	if [ $? -eq 0 ]; then
 		echo "[*] Granting ALL privileges on ${dbname} to ${username}!"
-		mysql -e "GRANT ALL PRIVILEGES ON ${dbname}.* TO '${username}'@'localhost' identified by '${userpasswd}';"
-		mysql -e "FLUSH PRIVILEGES;"
+		mysql -e "GRANT ALL PRIVILEGES ON ${dbname}.* TO '${username}'@'localhost' identified by '${userpasswd}';" 2>/dev/null
+		mysql -e "FLUSH PRIVILEGES;" 2>/dev/null
 		echo "[*] Privileges setup done!"
 	else
 		echo "[-] Problem occured with privileges granting"
 		exit 1
 	fi
 
-	sleep 2
+	sleep 1
 	if [ $? -eq 0 ]; then
 		echo "[*] Creating table called ${tablename}"
-		mysql -e "USE ${dbname}; CREATE TABLE ${tablename}(password1 varchar(30), password2 varchar(30));"
+		mysql -e "USE ${dbname}; CREATE TABLE ${tablename}(password1 varchar(30), password2 varchar(30));" 2>/dev/null
 		if [ $? -eq 0 ]; then
 			echo "[*] All done"
 			echo '**********************************************************'
@@ -79,15 +79,18 @@ function Database()
 		    if [ $password1 = $password2 ]; then
 		    	echo -e "${GREEN}[#] Password is:"
 		    	echo -e "${GREEN}[#] $password1"
-		    else
-		    	echo -e "${RED}[#] Password are different:"
-		    	echo -e "${RED}[#] $password1"
+		    	sleep 5
+		    	exit 0
+		   	else
+		    	echo -e "${RED}[#] Passwords are different:"
+		    	echo -e "${RED}[#] $password1" 
 		    	echo -e "${RED}[#] $password2"
+		    	sleep 5
+		    	exit 0
 			fi
 			break
 		fi
 	done
 }	
-
 
 Database
