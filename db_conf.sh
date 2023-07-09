@@ -1,21 +1,26 @@
 #!/bin/bash
-export dbname=access_point
-export tablename=wifi_keys
-export username=AP
-export userpasswd=password
+
+selected_network=$1
+password_file=$2
+import_vars="vars.sh"
+
+
+#password_file="/tmp/wifi_${selected_network}_password.txt"
 
 GREEN="\033[0;32m"
 RED="\033[0;31m"
 
+# Import variables
+source $import_vars
 
-# mysql database configuration
+# Mysql database configuration
 function Database()
 {
 	if [ $? -eq 0 ]; then
 		echo "[*] Creating new MySQL database..."
 		mysql -e "CREATE DATABASE ${dbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;" 2>/dev/null
 		if [ $? -eq 0 ]; then
-			echo "[*] Database successfully created!"	
+			echo "[*] Database created successfully!"	
 		else
 			echo "[-] Couldn't create database"
 			exit 1
@@ -27,10 +32,10 @@ function Database()
 
 	sleep 1
 	if [ $? -eq 0 ]; then
-		echo "[*] Creating new user..."
-		mysql -e "CREATE USER ${username}@localhost IDENTIFIED BY '${userpasswd}';" 2>/dev/null
+		echo "[*] Creating new MySQL User..."
+		mysql -e "CREATE USER ${username}@${dbhost} IDENTIFIED BY '${userpasswd}';" 2>/dev/null
 		if [ $? -eq 0 ]; then
-			echo "[*] User successfully created!"
+			echo "[*] User created successfully!"
 		else
 			echo "[-] Couldn't create user"
 		fi
@@ -41,7 +46,7 @@ function Database()
 
 	sleep 1
 	if [ $? -eq 0 ]; then
-		echo "[*] Granting ALL privileges on ${dbname} to ${username}!"
+		echo "[*] Granting all privileges on ${dbname} to ${username}!"
 		mysql -e "GRANT ALL PRIVILEGES ON ${dbname}.* TO '${username}'@'localhost' identified by '${userpasswd}';" 2>/dev/null
 		mysql -e "FLUSH PRIVILEGES;" 2>/dev/null
 		echo "[*] Privileges setup done!"
@@ -52,9 +57,10 @@ function Database()
 
 	sleep 1
 	if [ $? -eq 0 ]; then
-		echo "[*] Creating table called ${tablename}"
+		echo "[*] Creating new table called ${tablename}..."
 		mysql -e "USE ${dbname}; CREATE TABLE ${tablename}(password1 varchar(30), password2 varchar(30));" 2>/dev/null
 		if [ $? -eq 0 ]; then
+			echo "[*] Table created successfully!"
 			echo "[*] All done"
 			echo '**********************************************************'
 		else
@@ -65,29 +71,28 @@ function Database()
 		exit 1
 	fi
 
-	while true; do
-		sleep 4		
+	while true; do		
 		wifi_password=$(mysql -e "USE ${dbname}; SELECT * FROM ${tablename};")
-		echo "[*] Viewing columns"
+		echo "[*] Viewing columns..."
 
 		if [ -z "$wifi_password" ] ; then
-		   echo "[#] Nothing in columns"
+			echo "[#] Nothing in columns"
+			sleep 5
 		else
 			data=$(mysql -e "USE ${dbname}; SELECT * FROM ${tablename};")
 			password1=$(echo $data | awk '{print $3}')
 		    password2=$(echo $data | awk '{print $4}')			
 		    if [ $password1 = $password2 ]; then
 		    	echo -e "${GREEN}[#] Password is:"
-		    	echo -e "${GREEN}[#] $password1"
-		    	sleep 5
-		    	exit 0
+		    	echo -e "${GREEN}[#] $password1" 
+		    	# ; echo "Captured wifi password for [$selected_network] - $password1; $password2" >> $password_file
 		   	else
 		    	echo -e "${RED}[#] Passwords are different:"
 		    	echo -e "${RED}[#] $password1" 
 		    	echo -e "${RED}[#] $password2"
-		    	sleep 5
-		    	exit 0
+		    	# ; echo "Captured wifi password for [$selected_network] - $password1; $password2" >> $password_file
 			fi
+			sleep 2
 			break
 		fi
 	done

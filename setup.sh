@@ -1,3 +1,3 @@
 #!/bin/bash
 sudo apt update
-sudo apt install dnsmasq hostapd apache2 mysql-common network-manager tshark aircrack-ng tmux xterm
+sudo apt install dnsmasq hostapd lighttpd dhcpd mysql-common network-manager tshark aircrack-ng tmux xterm
