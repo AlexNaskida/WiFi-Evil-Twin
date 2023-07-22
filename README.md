@@ -13,5 +13,4 @@ To uninstall tool do execute following commads:
 ```
 chmod +x uninstall.sh
 ./uninstall.sh 
-
 ```
