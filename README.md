@@ -4,8 +4,14 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-And to run the script use:
+Enter following command in your terminal to run the script:
 ```
-chmod +x Evil_twin.sh
-./Evil_twin.sh
+etclon3r
+```
+
+To uninstall tool do execute following commads:
+```
+chmod +x uninstall.sh
+./uninstall.sh 
+
 ```

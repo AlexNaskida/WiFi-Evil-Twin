@@ -1,12 +1,11 @@
+#!/bin/bash
+
 # File paths
+lib_dir_path="/usr/local/lib/etclon3r_lib/"
 tmpdir="/tmp/"
 conf_dir="/opt/"
 ET_dir="access_point/"
-webdir="/var/www/captiveportal"
-
-# Bash files
-db_configuration="db_conf.sh"
-confirm_html_page="web.sh"
+webdir="/var/www/captiveportal/"
 
 # Configuration files
 server_conf_file="web.conf"
@@ -33,15 +32,17 @@ dbhost="localhost"
 ## Commands
 # Network
 wireless_interface_name=$(iwconfig 2> /dev/null | grep "IEEE" | cut -d " " -f 1)
-wifi_networks_scanner=$(iwlist $wireless_interface_name scan 2> /dev/null| grep "ESSID"| cut -d '"' -f 2)
 
-# Database 
-wifi_password=$(mysql -e "USE $dbname; SELECT * FROM $tablename;")
+# Check user
+non_priv_user=$(cat /etc/passwd | grep "/home" | cut -d ":" -f 1)
 
 # Other
-non_priv_user=$(cat /etc/passwd | grep "/home" | cut -d ":" -f 1)
+show=0
+fail=0
+scans=0
 
 # Colors
 Color_Off="\033[0m"  
 RED="\033[0;31m"
 GREEN="\033[0;32m"
+
