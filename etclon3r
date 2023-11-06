@@ -69,7 +69,7 @@ function handle_ctrl_c {
 }
 
 
-# Checking current interfacen & etwork
+# Checking current interfacen & network
 function Preparation()
 {
 	output=$(iwconfig 2> /dev/null)	
